@@ -36,8 +36,13 @@ guac_timestamp guac_timestamp_current() {
 
     struct timespec current;
 
-    /* Get current time */
-    clock_gettime(CLOCK_REALTIME, &current);
+    /* Get current time, monotinically increasing.
+       guacd expects that a client sync timestamp <= last_sent_timestamp. 
+       When time moves backwards, when last_sent_timestamp can move back, 
+       violating the assumption of forward moving time.
+       Ex. Obsorved a Azure Linux instance, 
+       where CLOCK_REALTIME jumped back often, causing disconnects. */
+    clock_gettime(CLOCK_MONOTONIC, &current);
     
     /* Calculate milliseconds */
     return (guac_timestamp) current.tv_sec * 1000 + current.tv_nsec / 1000000;
