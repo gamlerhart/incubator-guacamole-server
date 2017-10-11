@@ -36,7 +36,10 @@ BUILD_DIR="$1"
 ## located, printing the result to STDOUT.
 ##
 where_is_freerdp() {
-    dirname `rpm -ql freerdp-libs | grep 'libfreerdp.*\.so' | head -n1`
+    # Not working, since we build it ourself
+    # Just hardcoded now
+    # dirname `rpm -ql freerdp-libs | grep 'libfreerdp.*\.so' | head -n1`
+    echo /lib/local/lib64
 }
 
 #

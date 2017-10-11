@@ -31,8 +31,6 @@ ENV \
     RUNTIME_DEPENDENCIES="            \
         cairo                         \
         dejavu-sans-mono-fonts        \
-        freerdp                       \
-        freerdp-plugins               \
         ghostscript                   \
         libjpeg-turbo                 \
         libssh2                       \
@@ -49,7 +47,6 @@ ENV \
         autoconf                      \
         automake                      \
         cairo-devel                   \
-        freerdp-devel                 \
         gcc                           \
         libjpeg-turbo-devel           \
         libssh2-devel                 \
@@ -61,7 +58,9 @@ ENV \
         make                          \
         pango-devel                   \
         pulseaudio-libs-devel         \
-        uuid-devel"
+        uuid-devel                    \
+        cmake                         \
+        gcc-c++"
 
 # Bring environment up-to-date and install guacamole-server dependencies
 RUN yum -y update                        && \
@@ -75,8 +74,24 @@ COPY src/guacd-docker/bin /opt/guacd/bin/
 # Copy source to container for sake of build
 COPY . "$BUILD_DIR"
 
+# Hack: merge /usr/local/lib64 and /usr/local/lib, so that freerdp is found by guacd
+RUN rm -rf /usr/local/lib64/ && ln -s /usr/local/lib /usr/local/lib64
+
+# Bring in build tools
+# Build FreeRDP
 # Build guacamole-server from local source
-RUN yum -y install $BUILD_DEPENDENCIES         && \
+RUN yum -y install $BUILD_DEPENDENCIES && \
+    cd /tmp && \
+    curl -o free-rdp.tar.gz -L 'https://github.com/FreeRDP/FreeRDP/archive/1.1.0-beta+2013071101.tar.gz' && \
+    tar -xzf free-rdp.tar.gz && \
+    cd FreeRDP-1.1.0-beta-2013071101 && \
+    cmake -DWITH_SSE2=ON && \
+    make && \
+    make install && \
+    cd /tmp && \
+    rm -Rf FreeRDP-1.1.0-beta-2013071101 && \
+    rm -f free-rdp.tar.gz && \
+    cd / && \
     /opt/guacd/bin/build-guacd.sh "$BUILD_DIR" && \
     rm -Rf "$BUILD_DIR"                        && \
     yum -y autoremove $BUILD_DEPENDENCIES      && \
